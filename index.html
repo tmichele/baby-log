@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,300&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script>const APP_VERSION = '1.1.0';</script>
+<script>var APP_VERSION = '1.1.0';</script>
 
 <style>
   /* ── VARIABLES ── */
@@ -1872,6 +1872,11 @@ const CHART_DEFAULTS = {
 };
 
 window.renderCharts = function() {
+  // Guard: Chart.js must be loaded
+  if (typeof Chart === 'undefined') {
+    console.warn('[BabyLog] Chart.js non disponibile');
+    return;
+  }
   const { from, to } = getChartRange();
   const days = getDaysBetween(from, to);
   const dayFmt = d => d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit' });
@@ -2006,7 +2011,8 @@ window.renderCharts = function() {
       datasets: [{
         data: hourCounts,
         backgroundColor: hourCounts.map(v => {
-          const alpha = v === 0 ? 0.05 : 0.2 + (v / Math.max(...hourCounts)) * 0.7;
+          const maxVal = Math.max(...hourCounts, 1); // guard: never divide by 0
+          const alpha = v === 0 ? 0.05 : 0.2 + (v / maxVal) * 0.7;
           return `rgba(155,114,207,${alpha.toFixed(2)})`;
         }),
         borderColor: 'rgba(155,114,207,0.4)',
