@@ -1,0 +1,2067 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#F4A261">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="BabyLog">
+<title>BabyLog</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>const APP_VERSION = '1.1.0';</script>
+
+<style>
+  /* ── VARIABLES ── */
+  :root {
+    --peach:    #F4A261;
+    --peach-lt: #FFDAB9;
+    --mint:     #52B788;
+    --mint-lt:  #B7E4C7;
+    --lavender: #9B72CF;
+    --lav-lt:   #DDD6F3;
+    --rose:     #E76F51;
+    --rose-lt:  #FFCDB2;
+    --cream:    #FFF8F0;
+    --warm-bg:  #FEF3E2;
+    --card-bg:  #FFFCF8;
+    --text:     #3D2B1F;
+    --text-2:   #7A5C4F;
+    --text-3:   #B89B8E;
+    --border:   #F0E0D0;
+    --shadow:   0 4px 24px rgba(61,43,31,0.08);
+    --shadow-sm:0 2px 8px rgba(61,43,31,0.06);
+    --radius:   20px;
+    --radius-sm:12px;
+    --nav-h:    76px;
+    --safe-b:   env(safe-area-inset-bottom, 0px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    font-family: 'Nunito', sans-serif;
+    background: var(--warm-bg);
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  /* ── APP SHELL ── */
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--cream);
+    position: relative;
+    box-shadow: 0 0 60px rgba(0,0,0,0.12);
+  }
+
+  /* ── HEADER ── */
+  .app-header {
+    padding: 52px 24px 20px;
+    background: var(--cream);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+  }
+
+  .app-header h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: 28px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .app-header h1 span.emoji { font-size: 26px; }
+
+  .baby-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+
+  .baby-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--peach);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .today-date {
+    font-size: 13px;
+    color: var(--text-3);
+    font-weight: 600;
+  }
+
+  /* ── PAGES ── */
+  .pages {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .page {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 20px 20px calc(var(--nav-h) + var(--safe-b) + 20px);
+    display: none;
+    animation: fadeUp 0.25s ease;
+  }
+
+  .page.active { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 300;
+    color: var(--text);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 14px;
+  }
+
+  /* ── QUICK ACTION BUTTONS ── */
+  .quick-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .quick-btn {
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .quick-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.18s;
+  }
+
+  .quick-btn:active { transform: scale(0.96); }
+
+  .quick-btn.sleep   { --accent: var(--lavender); --accent-lt: var(--lav-lt); }
+  .quick-btn.feed    { --accent: var(--mint);     --accent-lt: var(--mint-lt); }
+  .quick-btn.diaper  { --accent: var(--peach);    --accent-lt: var(--peach-lt); }
+  .quick-btn.medicine{ --accent: var(--rose);     --accent-lt: var(--rose-lt); }
+
+  .quick-btn:hover, .quick-btn.active-state {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent-lt) 40%, white);
+  }
+
+  .quick-btn .icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    background: var(--accent-lt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+  }
+
+  .quick-btn .label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .quick-btn .sublabel {
+    font-size: 11px;
+    color: var(--text-3);
+    font-weight: 600;
+  }
+
+  /* active sleep/feed indicator */
+  .quick-btn .status-dot {
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1.5s infinite;
+    display: none;
+  }
+
+  .quick-btn.running .status-dot { display: block; }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%       { transform: scale(1.3); opacity: 0.7; }
+  }
+
+  /* ── TIMELINE ── */
+  .timeline { display: flex; flex-direction: column; gap: 10px; }
+
+  .timeline-item {
+    background: var(--card-bg);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    animation: fadeUp 0.2s ease;
+    cursor: pointer;
+    transition: box-shadow 0.15s;
+  }
+
+  .timeline-item:hover { box-shadow: var(--shadow); }
+
+  .timeline-icon {
+    width: 42px; height: 42px;
+    border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .timeline-icon.sleep    { background: var(--lav-lt); }
+  .timeline-icon.feed     { background: var(--mint-lt); }
+  .timeline-icon.diaper   { background: var(--peach-lt); }
+  .timeline-icon.medicine { background: var(--rose-lt); }
+
+  .timeline-body { flex: 1; min-width: 0; }
+
+  .timeline-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .timeline-detail {
+    font-size: 12px;
+    color: var(--text-3);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .timeline-time {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-3);
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .timeline-duration {
+    font-size: 11px;
+    color: var(--text-3);
+    font-weight: 600;
+  }
+
+  .del-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
+    opacity: 0.4;
+    transition: opacity 0.15s;
+  }
+  .del-btn:hover { opacity: 1; }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--text-3);
+  }
+  .empty-state .big-emoji { font-size: 56px; margin-bottom: 12px; display: block; }
+  .empty-state p { font-size: 14px; font-weight: 600; }
+
+  /* ── STATS ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-3);
+    margin-top: 4px;
+  }
+
+  .stat-card.sleep-stat .stat-value { color: var(--lavender); }
+  .stat-card.feed-stat  .stat-value { color: var(--mint); }
+  .stat-card.diaper-stat .stat-value { color: var(--peach); }
+  .stat-card.medicine-stat .stat-value { color: var(--rose); }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+    height: calc(var(--nav-h) + var(--safe-b));
+    background: var(--card-bg);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    padding-top: 8px;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 8px 4px;
+    border: none;
+    background: none;
+    color: var(--text-3);
+    transition: color 0.18s;
+    position: relative;
+  }
+
+  .nav-item .nav-icon { font-size: 24px; transition: transform 0.18s; }
+  .nav-item .nav-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; }
+
+  .nav-item.active { color: var(--peach); }
+  .nav-item.active .nav-icon { transform: translateY(-2px); }
+
+  .nav-item::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 24px; height: 3px;
+    background: var(--peach);
+    border-radius: 2px;
+    transition: transform 0.2s;
+  }
+  .nav-item.active::after { transform: translateX(-50%) scaleX(1); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(61,43,31,0.35);
+    display: flex;
+    align-items: flex-end;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s, visibility 0.25s;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-overlay.open { opacity: 1; visibility: visible; }
+
+  .modal {
+    background: var(--cream);
+    border-radius: 28px 28px 0 0;
+    padding: 12px 24px 40px;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    transform: translateY(30px);
+    transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
+    max-height: 90dvh;
+    overflow-y: auto;
+  }
+
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+
+  .modal-title {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 300;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* ── FORM ELEMENTS ── */
+  .form-group { margin-bottom: 16px; }
+
+  .form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-2);
+    margin-bottom: 8px;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 13px 16px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--card-bg);
+    outline: none;
+    transition: border-color 0.18s;
+    appearance: none;
+  }
+
+  .form-input:focus { border-color: var(--peach); }
+
+  .toggle-group {
+    display: flex;
+    gap: 8px;
+  }
+
+  .toggle-btn {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--card-bg);
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: all 0.18s;
+    text-align: center;
+  }
+
+  .toggle-btn.sel {
+    border-color: var(--accent, var(--peach));
+    background: color-mix(in srgb, var(--accent, var(--peach)) 15%, white);
+    color: var(--text);
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 16px;
+    background: var(--peach);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.18s;
+    margin-top: 8px;
+    letter-spacing: 0.3px;
+  }
+
+  .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+  .btn-primary.mint    { background: var(--mint); }
+  .btn-primary.lav     { background: var(--lavender); }
+  .btn-primary.rose    { background: var(--rose); }
+
+  .btn-secondary {
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    color: var(--text-3);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.18s;
+  }
+
+  .btn-secondary:hover { border-color: var(--text-3); }
+
+  .time-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .diaper-opts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .diaper-opt {
+    padding: 16px 8px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--card-bg);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.18s;
+  }
+
+  .diaper-opt .d-emoji { font-size: 28px; display: block; margin-bottom: 4px; }
+  .diaper-opt .d-label { font-size: 12px; font-weight: 700; color: var(--text-2); }
+
+  .diaper-opt.sel {
+    border-color: var(--peach);
+    background: var(--peach-lt);
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--text);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 700;
+    z-index: 9999;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── RUNNING TIMER ── */
+  .running-banner {
+    background: color-mix(in srgb, var(--lavender) 15%, white);
+    border: 2px solid var(--lavender);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  .running-banner.show { display: flex; }
+
+  .running-timer {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 300;
+    color: var(--lavender);
+    min-width: 70px;
+  }
+
+  .running-label {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-2);
+  }
+
+  .stop-btn {
+    background: var(--lavender);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 8px 16px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .stop-btn:active { opacity: 0.8; }
+
+  .feed-running-banner { background: color-mix(in srgb, var(--mint) 15%, white); border-color: var(--mint); }
+  .feed-running-banner .running-timer { color: var(--mint); }
+  .feed-running-banner .stop-btn { background: var(--mint); }
+
+  /* ── SETTINGS PAGE ── */
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: var(--card-bg);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    cursor: pointer;
+  }
+
+  .settings-row .row-label { font-size: 15px; font-weight: 700; }
+  .settings-row .row-sub   { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .settings-row .row-arrow { color: var(--text-3); font-size: 18px; }
+
+  .named-input {
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    width: 100%;
+    outline: none;
+  }
+  .named-input:focus { border-color: var(--peach); }
+
+  /* ── FILTERS ── */
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .filter-row::-webkit-scrollbar { display: none; }
+
+  .filter-chip {
+    padding: 7px 14px;
+    border: 2px solid var(--border);
+    border-radius: 50px;
+    background: var(--card-bg);
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.18s;
+  }
+
+  .filter-chip.active {
+    background: var(--text);
+    color: white;
+    border-color: var(--text);
+  }
+
+  /* Scrollbar */
+  .page::-webkit-scrollbar { width: 4px; }
+  .page::-webkit-scrollbar-track { background: transparent; }
+  .page::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── CHARTS ── */
+  .interval-selector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    background: var(--card-bg);
+    padding: 6px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+  }
+
+  .interval-btn {
+    flex: 1;
+    padding: 8px 4px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-3);
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+
+  .interval-btn.active {
+    background: var(--peach);
+    color: white;
+    box-shadow: 0 2px 8px rgba(244,162,97,0.35);
+  }
+
+  .chart-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 20px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 16px;
+  }
+
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .chart-title {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .chart-summary {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-3);
+    text-align: right;
+  }
+
+  .chart-summary strong {
+    font-size: 18px;
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    display: block;
+    color: var(--text);
+    line-height: 1.1;
+  }
+
+  .canvas-wrap {
+    position: relative;
+    height: 180px;
+  }
+
+  .custom-range {
+    display: none;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .custom-range.show { display: flex; }
+  .custom-range input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--card-bg);
+    outline: none;
+  }
+  .custom-range input:focus { border-color: var(--peach); }
+
+  .chart-legend {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-2);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── VERSION BADGE ── */
+  .version-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--lav-lt);
+    color: var(--lavender);
+    padding: 4px 10px;
+    border-radius: 50px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── UPDATE BANNER ── */
+  .update-banner {
+    background: linear-gradient(135deg, var(--mint), #3a9e6e);
+    color: white;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    display: none;
+    animation: slideDown 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .update-banner.show { display: flex; }
+  @keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+  .update-banner .upd-text { flex: 1; font-size: 13px; font-weight: 700; }
+  .update-banner .upd-btn {
+    background: white;
+    color: var(--mint);
+    border: none;
+    border-radius: 50px;
+    padding: 6px 14px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- HEADER -->
+  <header class="app-header">
+    <h1><span class="emoji">🍼</span> BabyLog</h1>
+    <div class="baby-info">
+      <span class="baby-name" id="headerBabyName">Il tuo bambino</span>
+      <span class="today-date" id="headerDate"></span>
+    </div>
+  </header>
+
+  <!-- UPDATE BANNER -->
+  <div class="update-banner" id="updateBanner" onclick="applyUpdate()">
+    <span>🔄</span>
+    <div class="upd-text">Nuova versione disponibile!</div>
+    <button class="upd-btn">Aggiorna</button>
+  </div>
+
+  <!-- PAGES -->
+  <div class="pages">
+
+    <!-- ── HOME ── -->
+    <div class="page active" id="page-home">
+      <!-- Sleep running banner -->
+      <div class="running-banner" id="sleepBanner">
+        <span>😴</span>
+        <div class="running-label">Sonno in corso</div>
+        <div class="running-timer" id="sleepTimer">0:00</div>
+        <button class="stop-btn" onclick="stopSleep()">Fine sonno</button>
+      </div>
+
+      <!-- Feed running banner -->
+      <div class="running-banner feed-running-banner" id="feedBanner">
+        <span>🤱</span>
+        <div class="running-label">Allattamento in corso</div>
+        <div class="running-timer" id="feedTimer">0:00</div>
+        <button class="stop-btn" style="background:var(--mint)" onclick="stopFeed()">Fine poppata</button>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="quick-btns">
+        <button class="quick-btn sleep" onclick="handleSleep()">
+          <div class="status-dot"></div>
+          <div class="icon">😴</div>
+          <div class="label">Sonno</div>
+          <div class="sublabel" id="sleepBtnSub">Inizia / Termina</div>
+        </button>
+        <button class="quick-btn feed" onclick="openFeedModal()">
+          <div class="status-dot"></div>
+          <div class="icon">🤱</div>
+          <div class="label">Allattamento</div>
+          <div class="sublabel" id="feedBtnSub">Seno / Biberon</div>
+        </button>
+        <button class="quick-btn diaper" onclick="openDiaperModal()">
+          <div class="status-dot"></div>
+          <div class="icon">🩲</div>
+          <div class="label">Pannolino</div>
+          <div class="sublabel">Log rapido</div>
+        </button>
+        <button class="quick-btn medicine" onclick="openMedModal()">
+          <div class="status-dot"></div>
+          <div class="icon">💊</div>
+          <div class="label">Medicina</div>
+          <div class="sublabel">Somministra</div>
+        </button>
+      </div>
+
+      <!-- Today stats -->
+      <div class="stats-grid">
+        <div class="stat-card sleep-stat">
+          <div class="stat-value" id="statSleep">0h</div>
+          <div class="stat-label">Sonno oggi</div>
+        </div>
+        <div class="stat-card feed-stat">
+          <div class="stat-value" id="statFeed">0</div>
+          <div class="stat-label">Poppate oggi</div>
+        </div>
+        <div class="stat-card diaper-stat">
+          <div class="stat-value" id="statDiaper">0</div>
+          <div class="stat-label">Pannolini oggi</div>
+        </div>
+        <div class="stat-card medicine-stat">
+          <div class="stat-value" id="statMedicine">0</div>
+          <div class="stat-label">Medicine oggi</div>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="section-title">📋 Ultimi eventi</div>
+      <div class="timeline" id="homeTimeline">
+        <div class="empty-state">
+          <span class="big-emoji">👶</span>
+          <p>Nessun evento ancora.<br>Inizia a tracciare!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STORICO ── -->
+    <div class="page" id="page-history">
+      <div class="section-title">📒 Storico completo</div>
+      <div class="filter-row" id="filterRow">
+        <button class="filter-chip active" data-filter="all" onclick="setFilter('all', this)">Tutti</button>
+        <button class="filter-chip" data-filter="sleep" onclick="setFilter('sleep', this)">😴 Sonno</button>
+        <button class="filter-chip" data-filter="feed" onclick="setFilter('feed', this)">🤱 Allattamento</button>
+        <button class="filter-chip" data-filter="diaper" onclick="setFilter('diaper', this)">🩲 Pannolino</button>
+        <button class="filter-chip" data-filter="medicine" onclick="setFilter('medicine', this)">💊 Medicina</button>
+      </div>
+      <div class="timeline" id="historyTimeline">
+        <div class="empty-state">
+          <span class="big-emoji">📋</span>
+          <p>Nessun evento registrato</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── IMPOSTAZIONI ── -->
+    <div class="page" id="page-settings">
+      <div class="section-title">⚙️ Impostazioni</div>
+
+      <div class="card">
+        <div class="card-title" style="color: var(--peach)">Profilo bambino</div>
+        <div class="form-group">
+          <label class="form-label">Nome del bambino</label>
+          <input type="text" class="named-input" id="babyNameInput" placeholder="Es. Sofia" oninput="saveBabyName()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data di nascita</label>
+          <input type="date" class="form-input" id="babyBirthDate" onchange="saveBabyBirth()">
+        </div>
+        <div id="babyAge" style="font-size:13px; color:var(--text-3); font-weight:600; text-align:center; margin-top:8px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="color: var(--rose)">Dati</div>
+        <div class="settings-row" onclick="exportData()">
+          <div>
+            <div class="row-label">📤 Esporta dati</div>
+            <div class="row-sub">Scarica JSON con tutti gli eventi</div>
+          </div>
+          <span class="row-arrow">›</span>
+        </div>
+        <div class="settings-row" onclick="confirmClear()">
+          <div>
+            <div class="row-label" style="color:var(--rose)">🗑️ Cancella tutto</div>
+            <div class="row-sub">Elimina tutti gli eventi</div>
+          </div>
+          <span class="row-arrow">›</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="color: var(--lavender)">App</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; padding: 4px 0 12px;">
+          <span style="font-size:14px; font-weight:700; color:var(--text-2)">Versione corrente</span>
+          <span class="version-badge" id="versionBadge">v—</span>
+        </div>
+        <div style="font-size:12px; color:var(--text-3); font-weight:600; line-height:1.5" id="updateStatus">
+          L'app scarica sempre la versione più recente all'avvio.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="color: var(--lavender)">Firebase config</div>
+        <p style="font-size:13px; color:var(--text-2); margin-bottom:12px; line-height:1.6">
+          Inserisci la configurazione del tuo progetto Firebase per abilitare la sincronizzazione multi-dispositivo.
+        </p>
+        <textarea class="form-input" id="fbConfig" rows="5"
+          placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "..." }'
+          style="font-size: 12px; font-family: monospace; resize: vertical;"></textarea>
+        <button class="btn-primary lav" onclick="applyFBConfig()" style="margin-top:10px">💾 Salva configurazione</button>
+      </div>
+
+      <p style="text-align:center; font-size:12px; color:var(--text-3); padding: 8px 0 24px; font-weight:600;">
+        BabyLog v1.0 · fatto con ❤️
+      </p>
+    </div>
+
+    <!-- ── GRAFICI ── -->
+    <div class="page" id="page-charts">
+      <div class="section-title">📈 Grafici & Trend</div>
+
+      <!-- Interval selector -->
+      <div class="interval-selector">
+        <button class="interval-btn active" data-days="7"  onclick="setInterval_(7, this)">7g</button>
+        <button class="interval-btn"        data-days="14" onclick="setInterval_(14, this)">14g</button>
+        <button class="interval-btn"        data-days="30" onclick="setInterval_(30, this)">30g</button>
+        <button class="interval-btn"        data-days="0"  onclick="setInterval_(0, this)">Tutto</button>
+        <button class="interval-btn"        data-days="-1" onclick="setInterval_(-1, this)">Custom</button>
+      </div>
+
+      <!-- Custom date range -->
+      <div class="custom-range" id="customRange">
+        <input type="date" id="chartFrom" onchange="renderCharts()">
+        <input type="date" id="chartTo"   onchange="renderCharts()">
+      </div>
+
+      <!-- Sleep chart -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">😴 Sonno</div>
+          <div class="chart-summary">
+            <strong id="avgSleep">—</strong>
+            media giornaliera
+          </div>
+        </div>
+        <div class="canvas-wrap"><canvas id="chartSleep"></canvas></div>
+      </div>
+
+      <!-- Feed chart -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">🤱 Allattamento</div>
+          <div class="chart-summary">
+            <strong id="avgFeed">—</strong>
+            media poppate/giorno
+          </div>
+        </div>
+        <div class="canvas-wrap"><canvas id="chartFeed"></canvas></div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#52B788"></div>Seno</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#F4A261"></div>Biberon</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#9B72CF;opacity:0.5"></div>Volume ml</div>
+        </div>
+      </div>
+
+      <!-- Diaper chart -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">🩲 Pannolini</div>
+          <div class="chart-summary">
+            <strong id="avgDiaper">—</strong>
+            media/giorno
+          </div>
+        </div>
+        <div class="canvas-wrap"><canvas id="chartDiaper"></canvas></div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#89CFF0"></div>Pipì</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#C4853A"></div>Cacca</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#A8A8A8"></div>Mix</div>
+        </div>
+      </div>
+
+      <!-- Medicine chart -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">💊 Medicine</div>
+          <div class="chart-summary">
+            <strong id="totalMed">—</strong>
+            somministrazioni
+          </div>
+        </div>
+        <div class="canvas-wrap"><canvas id="chartMed"></canvas></div>
+      </div>
+
+      <!-- Sleep pattern (heatmap-style: hour of day) -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">🕐 Pattern sonno (ora)</div>
+          <div class="chart-summary" style="font-size:11px; max-width:100px">Frequenza per fascia oraria</div>
+        </div>
+        <div class="canvas-wrap"><canvas id="chartSleepHour"></canvas></div>
+      </div>
+    </div>
+
+  </div><!-- /pages -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="showPage('home', this)">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Home</span>
+    </button>
+    <button class="nav-item" onclick="showPage('history', this)">
+      <span class="nav-icon">📒</span>
+      <span class="nav-label">Storico</span>
+    </button>
+    <button class="nav-item" onclick="showPage('charts', this)">
+      <span class="nav-icon">📈</span>
+      <span class="nav-label">Grafici</span>
+    </button>
+    <button class="nav-item" onclick="showPage('settings', this)">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">Impost.</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ── MODAL SONNO ── -->
+<div class="modal-overlay" id="sleepModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">😴 Sessione di sonno</div>
+    <div class="form-group">
+      <label class="form-label">Inizio sonno</label>
+      <input type="datetime-local" class="form-input" id="sleepStart">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fine sonno (opzionale)</label>
+      <input type="datetime-local" class="form-input" id="sleepEnd">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Note</label>
+      <input type="text" class="form-input" id="sleepNotes" placeholder="Es. agitato, tranquillo...">
+    </div>
+    <button class="btn-primary lav" onclick="saveSleepManual()">💾 Salva sonno</button>
+    <button class="btn-secondary" onclick="closeModal('sleepModal')">Annulla</button>
+  </div>
+</div>
+
+<!-- ── MODAL ALLATTAMENTO ── -->
+<div class="modal-overlay" id="feedModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🤱 Allattamento</div>
+    <div class="form-group">
+      <label class="form-label">Tipo</label>
+      <div class="toggle-group" style="--accent: var(--mint)">
+        <button class="toggle-btn sel" id="feedTypeBreast" onclick="setFeedType('breast', this)">🤱 Seno</button>
+        <button class="toggle-btn"    id="feedTypeBottle" onclick="setFeedType('bottle', this)">🍼 Biberon</button>
+      </div>
+    </div>
+    <div id="breastSideGroup" class="form-group">
+      <label class="form-label">Seno</label>
+      <div class="toggle-group" style="--accent: var(--mint)">
+        <button class="toggle-btn sel" id="sideLeft"  onclick="setBreastSide('left', this)">⬅️ Sinistro</button>
+        <button class="toggle-btn"    id="sideRight" onclick="setBreastSide('right', this)">➡️ Destro</button>
+        <button class="toggle-btn"    id="sideBoth"  onclick="setBreastSide('both', this)">↔️ Entrambi</button>
+      </div>
+    </div>
+    <div class="time-row">
+      <div class="form-group">
+        <label class="form-label">Inizio</label>
+        <input type="datetime-local" class="form-input" id="feedStart">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fine</label>
+        <input type="datetime-local" class="form-input" id="feedEnd">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Volume latte (ml)</label>
+      <input type="number" class="form-input" id="feedVolume" placeholder="Es. 120" min="0" step="5">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Note</label>
+      <input type="text" class="form-input" id="feedNotes" placeholder="Es. difficoltà attacco...">
+    </div>
+    <button class="btn-primary mint" onclick="saveFeed()">💾 Salva poppata</button>
+    <button class="btn-secondary" onclick="closeModal('feedModal')">Annulla</button>
+  </div>
+</div>
+
+<!-- ── MODAL PANNOLINO ── -->
+<div class="modal-overlay" id="diaperModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🩲 Pannolino</div>
+    <div class="form-group">
+      <label class="form-label">Contenuto</label>
+      <div class="diaper-opts">
+        <div class="diaper-opt sel" id="diaperPee" onclick="setDiaper('pee', this)">
+          <span class="d-emoji">💧</span>
+          <span class="d-label">Pipì</span>
+        </div>
+        <div class="diaper-opt" id="diaperPoop" onclick="setDiaper('poop', this)">
+          <span class="d-emoji">💩</span>
+          <span class="d-label">Cacca</span>
+        </div>
+        <div class="diaper-opt" id="diaperMix" onclick="setDiaper('mix', this)">
+          <span class="d-emoji">🌀</span>
+          <span class="d-label">Mix</span>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ora cambio</label>
+      <input type="datetime-local" class="form-input" id="diaperTime">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Note (colore, consistenza...)</label>
+      <input type="text" class="form-input" id="diaperNotes" placeholder="Opzionale">
+    </div>
+    <button class="btn-primary" onclick="saveDiaper()">💾 Salva pannolino</button>
+    <button class="btn-secondary" onclick="closeModal('diaperModal')">Annulla</button>
+  </div>
+</div>
+
+<!-- ── MODAL MEDICINA ── -->
+<div class="modal-overlay" id="medModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💊 Medicina</div>
+    <div class="form-group">
+      <label class="form-label">Nome farmaco</label>
+      <input type="text" class="form-input" id="medName" placeholder="Es. Paracetamolo bambini">
+    </div>
+    <div class="time-row">
+      <div class="form-group">
+        <label class="form-label">Dosaggio</label>
+        <input type="text" class="form-input" id="medDose" placeholder="Es. 5 ml">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipologia</label>
+        <select class="form-input" id="medType">
+          <option value="orale">Orale</option>
+          <option value="topica">Topica</option>
+          <option value="nasale">Nasale</option>
+          <option value="rettale">Rettale</option>
+          <option value="auricolare">Auricolare</option>
+          <option value="altro">Altro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ora somministrazione</label>
+      <input type="datetime-local" class="form-input" id="medTime">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Motivo / Note</label>
+      <input type="text" class="form-input" id="medNotes" placeholder="Es. febbre, coliche...">
+    </div>
+    <button class="btn-primary rose" onclick="saveMed()">💾 Salva medicina</button>
+    <button class="btn-secondary" onclick="closeModal('medModal')">Annulla</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc,
+         query, orderBy, onSnapshot, serverTimestamp }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+/* ─────────────────────────────────────────
+   🔥 FIREBASE CONFIG  ← sostituisci qui
+   ───────────────────────────────────────── */
+const FIREBASE_CONFIG = {
+  apiKey:            "INSERISCI-API-KEY",
+  authDomain:        "INSERISCI-AUTH-DOMAIN",
+  projectId:         "INSERISCI-PROJECT-ID",
+  storageBucket:     "INSERISCI-STORAGE-BUCKET",
+  messagingSenderId: "INSERISCI-SENDER-ID",
+  appId:             "INSERISCI-APP-ID"
+};
+
+let app, db, eventsCol;
+let useFirebase = false;
+
+function initFirebase(cfg) {
+  try {
+    app = initializeApp(cfg);
+    db  = getFirestore(app);
+    eventsCol = collection(db, 'babylog_events');
+    useFirebase = true;
+    subscribeFirebase();
+    showToast('🔥 Firebase connesso!');
+  } catch(e) {
+    console.warn('Firebase init failed, using localStorage', e);
+    loadLocalData();
+  }
+}
+
+// Try saved config
+const savedCfg = localStorage.getItem('babylog_fb_config');
+if (savedCfg) {
+  try { initFirebase(JSON.parse(savedCfg)); } catch { loadLocalData(); }
+} else {
+  loadLocalData();
+}
+
+window.applyFBConfig = function() {
+  const raw = document.getElementById('fbConfig').value.trim();
+  try {
+    const cfg = JSON.parse(raw);
+    localStorage.setItem('babylog_fb_config', raw);
+    initFirebase(cfg);
+  } catch(e) {
+    showToast('❌ JSON non valido');
+  }
+};
+
+/* ── STATE ── */
+let events = [];
+let currentFilter = 'all';
+let sleepStart = null;
+let feedStart = null;
+let feedSide = 'left';
+let feedType = 'breast';
+let diaperType = 'pee';
+let sleepInterval = null;
+let feedInterval = null;
+
+// Persist running state
+const persistedSleep = localStorage.getItem('babylog_sleep_running');
+const persistedFeed  = localStorage.getItem('babylog_feed_running');
+if (persistedSleep) {
+  sleepStart = new Date(persistedSleep);
+  startSleepTimer();
+  updateSleepUI(true);
+}
+if (persistedFeed) {
+  const pf = JSON.parse(persistedFeed);
+  feedStart = new Date(pf.start);
+  feedType  = pf.type;
+  feedSide  = pf.side;
+  startFeedTimer();
+  updateFeedUI(true);
+}
+
+/* ── FIREBASE REALTIME ── */
+function subscribeFirebase() {
+  const q = query(eventsCol, orderBy('timestamp', 'desc'));
+  onSnapshot(q, snap => {
+    events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderAll();
+  });
+}
+
+function loadLocalData() {
+  const raw = localStorage.getItem('babylog_events');
+  events = raw ? JSON.parse(raw) : [];
+  renderAll();
+}
+
+async function saveEvent(ev) {
+  if (useFirebase) {
+    await addDoc(eventsCol, { ...ev, timestamp: serverTimestamp() });
+  } else {
+    ev.id = Date.now().toString();
+    ev.timestamp = new Date().toISOString();
+    events.unshift(ev);
+    persistLocal();
+    renderAll();
+  }
+}
+
+async function deleteEvent(id) {
+  if (useFirebase) {
+    await deleteDoc(doc(db, 'babylog_events', id));
+  } else {
+    events = events.filter(e => e.id !== id);
+    persistLocal();
+    renderAll();
+  }
+}
+
+function persistLocal() {
+  localStorage.setItem('babylog_events', JSON.stringify(events));
+}
+
+/* ── SLEEP ── */
+window.handleSleep = function() {
+  if (!sleepStart) {
+    sleepStart = new Date();
+    localStorage.setItem('babylog_sleep_running', sleepStart.toISOString());
+    startSleepTimer();
+    updateSleepUI(true);
+    showToast('😴 Sonno iniziato!');
+  } else {
+    stopSleep();
+  }
+};
+
+window.stopSleep = async function() {
+  if (!sleepStart) return;
+  const end = new Date();
+  const dur = Math.round((end - sleepStart) / 60000);
+  await saveEvent({
+    type: 'sleep',
+    start: sleepStart.toISOString(),
+    end:   end.toISOString(),
+    durationMin: dur,
+    notes: ''
+  });
+  sleepStart = null;
+  localStorage.removeItem('babylog_sleep_running');
+  clearInterval(sleepInterval);
+  updateSleepUI(false);
+  showToast('✅ Sonno salvato! (' + formatDur(dur) + ')');
+};
+
+window.saveSleepManual = async function() {
+  const s = document.getElementById('sleepStart').value;
+  const e = document.getElementById('sleepEnd').value;
+  const notes = document.getElementById('sleepNotes').value;
+  if (!s) { showToast('⚠️ Inserisci orario inizio'); return; }
+  const start = new Date(s);
+  const end   = e ? new Date(e) : null;
+  const dur   = end ? Math.round((end - start) / 60000) : null;
+  await saveEvent({ type:'sleep', start: start.toISOString(), end: end?.toISOString(), durationMin: dur, notes });
+  closeModal('sleepModal');
+  showToast('✅ Sonno salvato!');
+};
+
+function startSleepTimer() {
+  clearInterval(sleepInterval);
+  sleepInterval = setInterval(() => {
+    const min = Math.floor((Date.now() - sleepStart) / 60000);
+    document.getElementById('sleepTimer').textContent = formatDur(min);
+  }, 1000);
+}
+
+function updateSleepUI(running) {
+  document.getElementById('sleepBanner').classList.toggle('show', running);
+  const btn = document.querySelector('.quick-btn.sleep');
+  btn.classList.toggle('running', running);
+  document.getElementById('sleepBtnSub').textContent = running ? 'In corso...' : 'Inizia / Termina';
+}
+
+/* ── FEED ── */
+window.openFeedModal = function() {
+  document.getElementById('feedStart').value = toInputDT(new Date());
+  document.getElementById('feedEnd').value = '';
+  document.getElementById('feedVolume').value = '';
+  document.getElementById('feedNotes').value = '';
+  openModal('feedModal');
+};
+
+window.setFeedType = function(type, btn) {
+  feedType = type;
+  document.querySelectorAll('#feedTypeBreast, #feedTypeBottle').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.getElementById('breastSideGroup').style.display = type === 'breast' ? '' : 'none';
+};
+
+window.setBreastSide = function(side, btn) {
+  feedSide = side;
+  document.querySelectorAll('#sideLeft,#sideRight,#sideBoth').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+};
+
+window.saveFeed = async function() {
+  const s = document.getElementById('feedStart').value;
+  const e = document.getElementById('feedEnd').value;
+  const vol = document.getElementById('feedVolume').value;
+  const notes = document.getElementById('feedNotes').value;
+  if (!s) { showToast('⚠️ Inserisci orario inizio'); return; }
+  const start = new Date(s);
+  const end   = e ? new Date(e) : null;
+  const dur   = end ? Math.round((end - start) / 60000) : null;
+  await saveEvent({
+    type: 'feed',
+    feedType,
+    side: feedType === 'breast' ? feedSide : null,
+    start: start.toISOString(),
+    end: end?.toISOString(),
+    durationMin: dur,
+    volumeMl: vol ? parseInt(vol) : null,
+    notes
+  });
+  closeModal('feedModal');
+  showToast('✅ Poppata salvata!');
+};
+
+window.stopFeed = window.saveFeed;
+function startFeedTimer() {
+  clearInterval(feedInterval);
+  feedInterval = setInterval(() => {
+    const min = Math.floor((Date.now() - feedStart) / 60000);
+    document.getElementById('feedTimer').textContent = formatDur(min);
+  }, 1000);
+}
+function updateFeedUI(running) {
+  document.getElementById('feedBanner').classList.toggle('show', running);
+  const btn = document.querySelector('.quick-btn.feed');
+  btn.classList.toggle('running', running);
+  document.getElementById('feedBtnSub').textContent = running ? 'In corso...' : 'Seno / Biberon';
+}
+
+/* ── DIAPER ── */
+window.openDiaperModal = function() {
+  document.getElementById('diaperTime').value = toInputDT(new Date());
+  document.getElementById('diaperNotes').value = '';
+  setDiaper('pee', document.getElementById('diaperPee'));
+  openModal('diaperModal');
+};
+
+window.setDiaper = function(type, el) {
+  diaperType = type;
+  document.querySelectorAll('.diaper-opt').forEach(o => o.classList.remove('sel'));
+  el.classList.add('sel');
+};
+
+window.saveDiaper = async function() {
+  const t = document.getElementById('diaperTime').value;
+  const notes = document.getElementById('diaperNotes').value;
+  await saveEvent({ type:'diaper', content: diaperType, time: t ? new Date(t).toISOString() : new Date().toISOString(), notes });
+  closeModal('diaperModal');
+  const labels = { pee:'💧 Pipì', poop:'💩 Cacca', mix:'🌀 Mix' };
+  showToast('✅ Pannolino: ' + labels[diaperType]);
+};
+
+/* ── MEDICINE ── */
+window.openMedModal = function() {
+  document.getElementById('medTime').value = toInputDT(new Date());
+  document.getElementById('medName').value = '';
+  document.getElementById('medDose').value = '';
+  document.getElementById('medNotes').value = '';
+  openModal('medModal');
+};
+
+window.saveMed = async function() {
+  const name = document.getElementById('medName').value.trim();
+  if (!name) { showToast('⚠️ Inserisci il nome del farmaco'); return; }
+  await saveEvent({
+    type: 'medicine',
+    name,
+    dose: document.getElementById('medDose').value,
+    medType: document.getElementById('medType').value,
+    time: new Date(document.getElementById('medTime').value || Date.now()).toISOString(),
+    notes: document.getElementById('medNotes').value
+  });
+  closeModal('medModal');
+  showToast('✅ Medicina salvata: ' + name);
+};
+
+/* ── RENDER ── */
+function renderAll() {
+  renderHomeTimeline();
+  renderHistoryTimeline();
+  updateStats();
+  // Render charts only if the page is active (avoid wasted work)
+  if (document.getElementById('page-charts').classList.contains('active')) renderCharts();
+}
+
+function renderHomeTimeline() {
+  const el = document.getElementById('homeTimeline');
+  const recent = events.slice(0, 10);
+  el.innerHTML = recent.length ? recent.map(renderItem).join('') : emptyState('👶', 'Nessun evento. Inizia a tracciare!');
+}
+
+function renderHistoryTimeline() {
+  const el = document.getElementById('historyTimeline');
+  const filtered = currentFilter === 'all' ? events : events.filter(e => e.type === currentFilter);
+  el.innerHTML = filtered.length ? filtered.map(renderItem).join('') : emptyState('📋', 'Nessun evento');
+}
+
+function renderItem(ev) {
+  const icons = { sleep:'😴', feed:'🤱', diaper:'🩲', medicine:'💊' };
+  const icon = icons[ev.type] || '📌';
+  const time = ev.start || ev.time || ev.timestamp;
+  const timeStr = time ? new Date(typeof time === 'string' ? time : time?.toDate?.() || time).toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}) : '--';
+  const dateStr = time ? new Date(typeof time === 'string' ? time : time?.toDate?.() || time).toLocaleDateString('it-IT', {day:'2-digit', month:'short'}) : '';
+
+  let title = '', detail = '';
+  if (ev.type === 'sleep') {
+    title = 'Sonno';
+    detail = ev.durationMin ? formatDur(ev.durationMin) : (ev.end ? '' : 'In corso...');
+    if (ev.notes) detail += ev.notes ? ' · ' + ev.notes : '';
+  } else if (ev.type === 'feed') {
+    const sideMap = { left:'seno sx', right:'seno dx', both:'entrambi' };
+    title = ev.feedType === 'bottle' ? 'Biberon' : 'Allattamento';
+    detail = [ev.side ? sideMap[ev.side] : '', ev.volumeMl ? ev.volumeMl+'ml' : '', ev.durationMin ? formatDur(ev.durationMin) : ''].filter(Boolean).join(' · ');
+  } else if (ev.type === 'diaper') {
+    const contentMap = { pee:'💧 Pipì', poop:'💩 Cacca', mix:'🌀 Mix' };
+    title = 'Pannolino';
+    detail = contentMap[ev.content] || '';
+    if (ev.notes) detail += ' · ' + ev.notes;
+  } else if (ev.type === 'medicine') {
+    title = ev.name || 'Medicina';
+    detail = [ev.dose, ev.medType, ev.notes].filter(Boolean).join(' · ');
+  }
+
+  return `
+  <div class="timeline-item" onclick="">
+    <div class="timeline-icon ${ev.type}">${icon}</div>
+    <div class="timeline-body">
+      <div class="timeline-title">${title}</div>
+      <div class="timeline-detail">${detail || '—'}</div>
+    </div>
+    <div style="text-align:right; flex-shrink:0">
+      <div class="timeline-time">${timeStr}</div>
+      <div class="timeline-duration">${dateStr}</div>
+      <button class="del-btn" onclick="event.stopPropagation(); delEvent('${ev.id}')">🗑️</button>
+    </div>
+  </div>`;
+}
+
+window.delEvent = function(id) {
+  if (confirm('Eliminare questo evento?')) deleteEvent(id);
+};
+
+function emptyState(emoji, text) {
+  return `<div class="empty-state"><span class="big-emoji">${emoji}</span><p>${text}</p></div>`;
+}
+
+function updateStats() {
+  const today = new Date().toDateString();
+  const todayEvents = events.filter(e => {
+    const t = e.start || e.time || e.timestamp;
+    if (!t) return false;
+    const d = typeof t === 'string' ? t : t?.toDate?.()?.toISOString() || '';
+    return new Date(d).toDateString() === today;
+  });
+
+  // Sleep minutes today
+  const sleepMin = todayEvents.filter(e => e.type === 'sleep').reduce((acc, e) => acc + (e.durationMin || 0), 0);
+  const hh = Math.floor(sleepMin / 60), mm = sleepMin % 60;
+  document.getElementById('statSleep').textContent = hh > 0 ? hh + 'h' + (mm > 0 ? mm + 'm' : '') : (mm + 'm');
+
+  document.getElementById('statFeed').textContent     = todayEvents.filter(e => e.type === 'feed').length;
+  document.getElementById('statDiaper').textContent   = todayEvents.filter(e => e.type === 'diaper').length;
+  document.getElementById('statMedicine').textContent = todayEvents.filter(e => e.type === 'medicine').length;
+}
+
+/* ── FILTER ── */
+window.setFilter = function(filter, el) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderHistoryTimeline();
+};
+
+/* ── MODALS ── */
+window.openModal = function(id) {
+  document.getElementById(id).classList.add('open');
+};
+window.closeModal = function(id) {
+  document.getElementById(id).classList.remove('open');
+};
+
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+/* ── NAVIGATION ── */
+window.showPage = function(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'charts') renderCharts();
+};
+
+/* ── SETTINGS ── */
+const babyName = localStorage.getItem('babylog_baby_name') || '';
+const babyBirth = localStorage.getItem('babylog_baby_birth') || '';
+if (babyName) {
+  document.getElementById('babyNameInput').value = babyName;
+  document.getElementById('headerBabyName').textContent = babyName;
+}
+if (babyBirth) {
+  document.getElementById('babyBirthDate').value = babyBirth;
+  updateBabyAge();
+}
+
+window.saveBabyName = function() {
+  const v = document.getElementById('babyNameInput').value;
+  localStorage.setItem('babylog_baby_name', v);
+  document.getElementById('headerBabyName').textContent = v || 'Il tuo bambino';
+};
+
+window.saveBabyBirth = function() {
+  const v = document.getElementById('babyBirthDate').value;
+  localStorage.setItem('babylog_baby_birth', v);
+  updateBabyAge();
+};
+
+function updateBabyAge() {
+  const b = localStorage.getItem('babylog_baby_birth');
+  if (!b) return;
+  const born = new Date(b);
+  const now = new Date();
+  const days = Math.floor((now - born) / 86400000);
+  const weeks = Math.floor(days / 7);
+  const months = Math.floor(days / 30.44);
+  let age = '';
+  if (days < 14) age = days + ' giorni';
+  else if (weeks < 8) age = weeks + ' settimane';
+  else age = months + ' mesi';
+  document.getElementById('babyAge').textContent = '🎂 Età: ' + age;
+}
+
+window.exportData = function() {
+  const json = JSON.stringify(events, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'babylog-export-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+};
+
+window.confirmClear = function() {
+  if (confirm('Sei sicuro? Tutti gli eventi verranno eliminati.')) {
+    events = [];
+    persistLocal();
+    renderAll();
+    showToast('🗑️ Dati eliminati');
+  }
+};
+
+/* ── UTILS ── */
+function toInputDT(d) {
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function formatDur(min) {
+  if (!min && min !== 0) return '';
+  const h = Math.floor(min / 60), m = min % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+window.showToast = function(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+};
+
+/* ── DATE HEADER ── */
+document.getElementById('headerDate').textContent = new Date().toLocaleDateString('it-IT', {
+  weekday:'long', day:'numeric', month:'long'
+});
+
+/* ── CHARTS ── */
+let chartInterval = 7; // days, 0 = all, -1 = custom
+let chartInstances = {};
+
+window.setInterval_ = function(days, btn) {
+  chartInterval = days;
+  document.querySelectorAll('.interval-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('customRange').classList.toggle('show', days === -1);
+  renderCharts();
+};
+
+function getChartRange() {
+  const now = new Date();
+  let from, to = new Date(now);
+  to.setHours(23,59,59,999);
+
+  if (chartInterval === -1) {
+    // custom
+    const f = document.getElementById('chartFrom').value;
+    const t = document.getElementById('chartTo').value;
+    from = f ? new Date(f) : new Date(now - 30*86400000);
+    to   = t ? new Date(t + 'T23:59:59') : to;
+  } else if (chartInterval === 0) {
+    from = new Date(0);
+  } else {
+    from = new Date(now);
+    from.setDate(from.getDate() - chartInterval + 1);
+    from.setHours(0,0,0,0);
+  }
+  return { from, to };
+}
+
+function getDaysBetween(from, to) {
+  const days = [];
+  const cur = new Date(from);
+  cur.setHours(0,0,0,0);
+  while (cur <= to) {
+    days.push(cur.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit' }));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return days;
+}
+
+function evtDate(ev) {
+  const t = ev.start || ev.time || ev.timestamp;
+  if (!t) return null;
+  return new Date(typeof t === 'object' && t.toDate ? t.toDate() : t);
+}
+
+function destroyChart(id) {
+  if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+const CHART_DEFAULTS = {
+  plugins: { legend: { display: false } },
+  animation: { duration: 400 },
+  responsive: true,
+  maintainAspectRatio: false,
+  scales: {
+    x: { grid:{ color:'rgba(0,0,0,0.04)' }, ticks:{ font:{ family:'Nunito', size:10, weight:'700' }, color:'#B89B8E', maxRotation:45 } },
+    y: { grid:{ color:'rgba(0,0,0,0.04)' }, ticks:{ font:{ family:'Nunito', size:10, weight:'700' }, color:'#B89B8E' }, beginAtZero:true }
+  }
+};
+
+window.renderCharts = function() {
+  const { from, to } = getChartRange();
+  const days = getDaysBetween(from, to);
+  const dayFmt = d => d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit' });
+
+  const inRange = ev => {
+    const d = evtDate(ev);
+    return d && d >= from && d <= to;
+  };
+
+  // ── SLEEP ──
+  const sleepByDay = {};
+  days.forEach(d => sleepByDay[d] = 0);
+  events.filter(e => e.type === 'sleep' && inRange(e)).forEach(e => {
+    const d = dayFmt(evtDate(e));
+    if (sleepByDay[d] !== undefined) sleepByDay[d] += (e.durationMin || 0) / 60;
+  });
+  const sleepVals = days.map(d => +sleepByDay[d].toFixed(1));
+  const avgSleep = sleepVals.length ? (sleepVals.reduce((a,b)=>a+b,0)/sleepVals.filter(v=>v>0).length||0) : 0;
+  document.getElementById('avgSleep').textContent = (avgSleep||0).toFixed(1) + 'h';
+
+  destroyChart('sleep');
+  chartInstances.sleep = new Chart(document.getElementById('chartSleep'), {
+    type: 'bar',
+    data: {
+      labels: days,
+      datasets: [{
+        data: sleepVals,
+        backgroundColor: 'rgba(155,114,207,0.6)',
+        borderColor: '#9B72CF',
+        borderWidth: 2,
+        borderRadius: 6,
+      }]
+    },
+    options: { ...CHART_DEFAULTS, scales: { ...CHART_DEFAULTS.scales, y: { ...CHART_DEFAULTS.scales.y, title:{ display:true, text:'ore', font:{family:'Nunito',size:10}, color:'#B89B8E' } } } }
+  });
+
+  // ── FEED ──
+  const feedSeno = {}, feedBib = {}, feedVol = {};
+  days.forEach(d => { feedSeno[d]=0; feedBib[d]=0; feedVol[d]=0; });
+  events.filter(e => e.type === 'feed' && inRange(e)).forEach(e => {
+    const d = dayFmt(evtDate(e));
+    if (feedSeno[d] === undefined) return;
+    if (e.feedType === 'bottle') feedBib[d]++; else feedSeno[d]++;
+    feedVol[d] += (e.volumeMl || 0);
+  });
+  const totalFeeds = events.filter(e => e.type === 'feed' && inRange(e)).length;
+  const activeDays = days.filter(d => feedSeno[d]+feedBib[d] > 0).length || 1;
+  document.getElementById('avgFeed').textContent = (totalFeeds/activeDays).toFixed(1);
+
+  destroyChart('feed');
+  chartInstances.feed = new Chart(document.getElementById('chartFeed'), {
+    type: 'bar',
+    data: {
+      labels: days,
+      datasets: [
+        { label:'Seno', data: days.map(d=>feedSeno[d]), backgroundColor:'rgba(82,183,136,0.7)', borderColor:'#52B788', borderWidth:2, borderRadius:4 },
+        { label:'Biberon', data: days.map(d=>feedBib[d]), backgroundColor:'rgba(244,162,97,0.7)', borderColor:'#F4A261', borderWidth:2, borderRadius:4 },
+        { label:'Volume ml', data: days.map(d=>feedVol[d]), type:'line', yAxisID:'y2', borderColor:'rgba(155,114,207,0.7)', backgroundColor:'rgba(155,114,207,0.1)', borderWidth:2, pointRadius:3, fill:true, tension:0.3 }
+      ]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      plugins: { legend: { display:false } },
+      scales: {
+        x: CHART_DEFAULTS.scales.x,
+        y: { ...CHART_DEFAULTS.scales.y, stacked:false, title:{ display:true, text:'poppate', font:{family:'Nunito',size:10}, color:'#B89B8E' } },
+        y2: { position:'right', grid:{ drawOnChartArea:false }, ticks:{ font:{family:'Nunito',size:9}, color:'#B89B8E' }, title:{ display:true, text:'ml', font:{family:'Nunito',size:10}, color:'#B89B8E' }, beginAtZero:true }
+      }
+    }
+  });
+
+  // ── DIAPER ──
+  const dPee={}, dPoop={}, dMix={};
+  days.forEach(d => { dPee[d]=0; dPoop[d]=0; dMix[d]=0; });
+  events.filter(e => e.type === 'diaper' && inRange(e)).forEach(e => {
+    const d = dayFmt(evtDate(e));
+    if (dPee[d] === undefined) return;
+    if (e.content==='pee') dPee[d]++;
+    else if (e.content==='poop') dPoop[d]++;
+    else dMix[d]++;
+  });
+  const totalDiapers = events.filter(e => e.type === 'diaper' && inRange(e)).length;
+  document.getElementById('avgDiaper').textContent = (totalDiapers/Math.max(days.length,1)).toFixed(1);
+
+  destroyChart('diaper');
+  chartInstances.diaper = new Chart(document.getElementById('chartDiaper'), {
+    type: 'bar',
+    data: {
+      labels: days,
+      datasets: [
+        { label:'Pipì',  data: days.map(d=>dPee[d]),  backgroundColor:'rgba(137,207,240,0.8)', borderRadius:4 },
+        { label:'Cacca', data: days.map(d=>dPoop[d]), backgroundColor:'rgba(196,133,58,0.8)',  borderRadius:4 },
+        { label:'Mix',   data: days.map(d=>dMix[d]),  backgroundColor:'rgba(168,168,168,0.8)', borderRadius:4 }
+      ]
+    },
+    options: { ...CHART_DEFAULTS, plugins:{ legend:{display:false} }, scales:{ x:{ ...CHART_DEFAULTS.scales.x, stacked:true }, y:{ ...CHART_DEFAULTS.scales.y, stacked:true } } }
+  });
+
+  // ── MEDICINE ──
+  const medByDay = {};
+  days.forEach(d => medByDay[d] = 0);
+  events.filter(e => e.type === 'medicine' && inRange(e)).forEach(e => {
+    const d = dayFmt(evtDate(e));
+    if (medByDay[d] !== undefined) medByDay[d]++;
+  });
+  const totalMeds = events.filter(e => e.type === 'medicine' && inRange(e)).length;
+  document.getElementById('totalMed').textContent = totalMeds;
+
+  destroyChart('med');
+  chartInstances.med = new Chart(document.getElementById('chartMed'), {
+    type: 'bar',
+    data: {
+      labels: days,
+      datasets: [{ data: days.map(d=>medByDay[d]), backgroundColor:'rgba(231,111,81,0.65)', borderColor:'#E76F51', borderWidth:2, borderRadius:6 }]
+    },
+    options: CHART_DEFAULTS
+  });
+
+  // ── SLEEP BY HOUR ──
+  const hourCounts = Array(24).fill(0);
+  events.filter(e => e.type === 'sleep' && inRange(e)).forEach(e => {
+    const d = evtDate(e);
+    if (d) hourCounts[d.getHours()]++;
+  });
+  const hourLabels = Array.from({length:24}, (_,i) => i + ':00');
+
+  destroyChart('sleepHour');
+  chartInstances.sleepHour = new Chart(document.getElementById('chartSleepHour'), {
+    type: 'bar',
+    data: {
+      labels: hourLabels,
+      datasets: [{
+        data: hourCounts,
+        backgroundColor: hourCounts.map(v => {
+          const alpha = v === 0 ? 0.05 : 0.2 + (v / Math.max(...hourCounts)) * 0.7;
+          return `rgba(155,114,207,${alpha.toFixed(2)})`;
+        }),
+        borderColor: 'rgba(155,114,207,0.4)',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        x: { ...CHART_DEFAULTS.scales.x, ticks:{ ...CHART_DEFAULTS.scales.x.ticks, maxTicksLimit: 12 } },
+        y: { ...CHART_DEFAULTS.scales.y }
+      }
+    }
+  });
+};
+
+/* ── VERSION & APP INFO ── */
+document.getElementById('versionBadge').textContent = 'v' + APP_VERSION;
+
+/* ── PWA + AUTO UPDATE ── */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    // Check for updates immediately and every 30s
+    reg.update();
+    setInterval(() => reg.update(), 30000);
+
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          // New version ready — show banner
+          document.getElementById('updateBanner').classList.add('show');
+          document.getElementById('updateStatus').textContent = '🟢 Nuova versione disponibile — clicca il banner per aggiornare.';
+          window._newWorker = newWorker;
+        }
+      });
+    });
+  }).catch(e => console.warn('SW error', e));
+
+  // When SW takes control, reload to get fresh app
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) { refreshing = true; location.reload(); }
+  });
+}
+
+window.applyUpdate = function() {
+  if (window._newWorker) {
+    window._newWorker.postMessage({ type: 'SKIP_WAITING' });
+  } else {
+    location.reload(true);
+  }
+};
+
+</script>
+</body>
+</html>
