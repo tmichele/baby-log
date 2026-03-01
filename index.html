@@ -1316,62 +1316,12 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<!-- Firebase -->
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc,
-         query, orderBy, onSnapshot, serverTimestamp }
-  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+<!-- App Logic -->
+<script>
+(function() { // IIFE to avoid polluting global scope while keeping window.X accessible
+'use strict';
 
-/* ─────────────────────────────────────────
-   🔥 FIREBASE CONFIG  ← sostituisci qui
-   ───────────────────────────────────────── */
-const FIREBASE_CONFIG = {
-  apiKey:            "INSERISCI-API-KEY",
-  authDomain:        "INSERISCI-AUTH-DOMAIN",
-  projectId:         "INSERISCI-PROJECT-ID",
-  storageBucket:     "INSERISCI-STORAGE-BUCKET",
-  messagingSenderId: "INSERISCI-SENDER-ID",
-  appId:             "INSERISCI-APP-ID"
-};
-
-let app, db, eventsCol;
-let useFirebase = false;
-
-function initFirebase(cfg) {
-  try {
-    app = initializeApp(cfg);
-    db  = getFirestore(app);
-    eventsCol = collection(db, 'babylog_events');
-    useFirebase = true;
-    subscribeFirebase();
-    showToast('🔥 Firebase connesso!');
-  } catch(e) {
-    console.warn('Firebase init failed, using localStorage', e);
-    loadLocalData();
-  }
-}
-
-// Try saved config
-const savedCfg = localStorage.getItem('babylog_fb_config');
-if (savedCfg) {
-  try { initFirebase(JSON.parse(savedCfg)); } catch { loadLocalData(); }
-} else {
-  loadLocalData();
-}
-
-window.applyFBConfig = function() {
-  const raw = document.getElementById('fbConfig').value.trim();
-  try {
-    const cfg = JSON.parse(raw);
-    localStorage.setItem('babylog_fb_config', raw);
-    initFirebase(cfg);
-  } catch(e) {
-    showToast('❌ JSON non valido');
-  }
-};
-
-/* ── STATE ── */
+/* ── STATE ──────────────────────────────── */
 let events = [];
 let currentFilter = 'all';
 let sleepStart = null;
@@ -1382,43 +1332,79 @@ let diaperType = 'pee';
 let sleepInterval = null;
 let feedInterval = null;
 
-// Persist running state
-const persistedSleep = localStorage.getItem('babylog_sleep_running');
-const persistedFeed  = localStorage.getItem('babylog_feed_running');
-if (persistedSleep) {
-  sleepStart = new Date(persistedSleep);
-  startSleepTimer();
-  updateSleepUI(true);
-}
-if (persistedFeed) {
-  const pf = JSON.parse(persistedFeed);
-  feedStart = new Date(pf.start);
-  feedType  = pf.type;
-  feedSide  = pf.side;
-  startFeedTimer();
-  updateFeedUI(true);
+/* ── RESTORE RUNNING SESSIONS (called after DOM ready) ── */
+function restoreRunningSessions() {
+  const persistedSleep = localStorage.getItem('babylog_sleep_running');
+  const persistedFeed  = localStorage.getItem('babylog_feed_running');
+  if (persistedSleep) {
+    sleepStart = new Date(persistedSleep);
+    startSleepTimer();
+    updateSleepUI(true);
+  }
+  if (persistedFeed) {
+    try {
+      const pf = JSON.parse(persistedFeed);
+      feedStart = new Date(pf.start);
+      feedType  = pf.type  || 'breast';
+      feedSide  = pf.side  || 'left';
+      startFeedTimer();
+      updateFeedUI(true);
+    } catch(e) { localStorage.removeItem('babylog_feed_running'); }
+  }
 }
 
-/* ── FIREBASE REALTIME ── */
-function subscribeFirebase() {
-  const q = query(eventsCol, orderBy('timestamp', 'desc'));
-  onSnapshot(q, snap => {
-    events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderAll();
-  });
+/* ── FIREBASE (dynamic import — non blocca l'app) ── */
+let _fbAddDoc, _fbDeleteDoc, _fbDoc, _fbDb, _fbEventsCol;
+let useFirebase = false;
+
+async function initFirebase(cfg) {
+  try {
+    const { initializeApp }    = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+    const { getFirestore, collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp }
+      = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+
+    const app    = initializeApp(cfg);
+    _fbDb        = getFirestore(app);
+    _fbEventsCol = collection(_fbDb, 'babylog_events');
+    _fbAddDoc    = (ev) => addDoc(_fbEventsCol, { ...ev, timestamp: serverTimestamp() });
+    _fbDeleteDoc = (id) => deleteDoc(doc(_fbDb, 'babylog_events', id));
+    useFirebase  = true;
+
+    // Live subscription
+    const q = query(_fbEventsCol, orderBy('timestamp', 'desc'));
+    onSnapshot(q, snap => {
+      events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderAll();
+    });
+
+    showToast('🔥 Firebase connesso!');
+  } catch(e) {
+    console.warn('[BabyLog] Firebase init fallita, uso localStorage:', e);
+    useFirebase = false;
+    loadLocalData();
+    showToast('📱 Modalità offline (localStorage)');
+  }
 }
 
 function loadLocalData() {
-  const raw = localStorage.getItem('babylog_events');
-  events = raw ? JSON.parse(raw) : [];
+  try {
+    const raw = localStorage.getItem('babylog_events');
+    events = raw ? JSON.parse(raw) : [];
+  } catch(e) {
+    events = [];
+  }
   renderAll();
+}
+
+function persistLocal() {
+  try { localStorage.setItem('babylog_events', JSON.stringify(events)); } catch(e) {}
 }
 
 async function saveEvent(ev) {
   if (useFirebase) {
-    await addDoc(eventsCol, { ...ev, timestamp: serverTimestamp() });
+    try { await _fbAddDoc(ev); } catch(e) { console.error('[BabyLog] saveEvent FB error', e); }
   } else {
-    ev.id = Date.now().toString();
+    ev.id        = Date.now().toString();
     ev.timestamp = new Date().toISOString();
     events.unshift(ev);
     persistLocal();
@@ -1428,16 +1414,12 @@ async function saveEvent(ev) {
 
 async function deleteEvent(id) {
   if (useFirebase) {
-    await deleteDoc(doc(db, 'babylog_events', id));
+    try { await _fbDeleteDoc(id); } catch(e) { console.error('[BabyLog] deleteEvent FB error', e); }
   } else {
     events = events.filter(e => e.id !== id);
     persistLocal();
     renderAll();
   }
-}
-
-function persistLocal() {
-  localStorage.setItem('babylog_events', JSON.stringify(events));
 }
 
 /* ── SLEEP ── */
@@ -1711,11 +1693,6 @@ window.closeModal = function(id) {
   document.getElementById(id).classList.remove('open');
 };
 
-// Close on overlay click
-document.querySelectorAll('.modal-overlay').forEach(o => {
-  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
-});
-
 /* ── NAVIGATION ── */
 window.showPage = function(name, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -1726,17 +1703,6 @@ window.showPage = function(name, btn) {
 };
 
 /* ── SETTINGS ── */
-const babyName = localStorage.getItem('babylog_baby_name') || '';
-const babyBirth = localStorage.getItem('babylog_baby_birth') || '';
-if (babyName) {
-  document.getElementById('babyNameInput').value = babyName;
-  document.getElementById('headerBabyName').textContent = babyName;
-}
-if (babyBirth) {
-  document.getElementById('babyBirthDate').value = babyBirth;
-  updateBabyAge();
-}
-
 window.saveBabyName = function() {
   const v = document.getElementById('babyNameInput').value;
   localStorage.setItem('babylog_baby_name', v);
@@ -1798,13 +1764,8 @@ window.showToast = function(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
+  setTimeout(function() { t.classList.remove('show'); }, 2800);
 };
-
-/* ── DATE HEADER ── */
-document.getElementById('headerDate').textContent = new Date().toLocaleDateString('it-IT', {
-  weekday:'long', day:'numeric', month:'long'
-});
 
 /* ── CHARTS ── */
 let chartInterval = 7; // days, 0 = all, -1 = custom
@@ -2030,44 +1991,101 @@ window.renderCharts = function() {
   });
 };
 
-/* ── VERSION & APP INFO ── */
+/* ─────────────────────────────────────────────────────
+   APP STARTUP — tutto il codice di init va QUI, DOPO
+   che tutte le funzioni sono state definite sopra
+   ───────────────────────────────────────────────────── */
+
+// Versione badge
 document.getElementById('versionBadge').textContent = 'v' + APP_VERSION;
 
+// Data header
+document.getElementById('headerDate').textContent = new Date().toLocaleDateString('it-IT', {
+  weekday:'long', day:'numeric', month:'long'
+});
+
+// Profilo bambino
+(function loadBabyProfile() {
+  const name  = localStorage.getItem('babylog_baby_name')  || '';
+  const birth = localStorage.getItem('babylog_baby_birth') || '';
+  if (name)  {
+    document.getElementById('babyNameInput').value = name;
+    document.getElementById('headerBabyName').textContent = name;
+  }
+  if (birth) {
+    document.getElementById('babyBirthDate').value = birth;
+    updateBabyAge();
+  }
+})();
+
+// Modale overlay close
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', function(e) { if (e.target === o) o.classList.remove('open'); });
+});
+
+// Ripristina sessioni in corso (sleep/feed timer)
+restoreRunningSessions();
+
+// Firebase o localStorage
+window.applyFBConfig = function() {
+  const raw = document.getElementById('fbConfig').value.trim();
+  try {
+    const cfg = JSON.parse(raw);
+    localStorage.setItem('babylog_fb_config', raw);
+    initFirebase(cfg);
+  } catch(e) {
+    showToast('❌ JSON non valido');
+  }
+};
+
+(function startApp() {
+  const savedCfg = localStorage.getItem('babylog_fb_config');
+  if (savedCfg) {
+    try {
+      const cfg = JSON.parse(savedCfg);
+      initFirebase(cfg); // async — carica Firebase in background
+    } catch(e) {
+      loadLocalData();
+    }
+  } else {
+    loadLocalData();
+  }
+})();
+
 /* ── PWA + AUTO UPDATE ── */
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').then(reg => {
-    // Check for updates immediately and every 30s
-    reg.update();
-    setInterval(() => reg.update(), 30000);
-
-    reg.addEventListener('updatefound', () => {
-      const newWorker = reg.installing;
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          // New version ready — show banner
-          document.getElementById('updateBanner').classList.add('show');
-          document.getElementById('updateStatus').textContent = '🟢 Nuova versione disponibile — clicca il banner per aggiornare.';
-          window._newWorker = newWorker;
-        }
-      });
-    });
-  }).catch(e => console.warn('SW error', e));
-
-  // When SW takes control, reload to get fresh app
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) { refreshing = true; location.reload(); }
-  });
-}
-
 window.applyUpdate = function() {
-  if (window._newWorker) {
-    window._newWorker.postMessage({ type: 'SKIP_WAITING' });
+  if (window._pendingWorker) {
+    window._pendingWorker.postMessage({ type: 'SKIP_WAITING' });
   } else {
     location.reload(true);
   }
 };
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(function(reg) {
+    reg.update(); // controlla aggiornamenti subito
+    setInterval(function() { reg.update(); }, 60000); // e ogni minuto
+
+    reg.addEventListener('updatefound', function() {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', function() {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          document.getElementById('updateBanner').classList.add('show');
+          document.getElementById('updateStatus').textContent =
+            '🟢 Nuova versione disponibile — clicca il banner per aggiornare.';
+          window._pendingWorker = newWorker;
+        }
+      });
+    });
+  }).catch(function(e) { console.warn('[BabyLog] SW error:', e); });
+
+  var _refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    if (!_refreshing) { _refreshing = true; location.reload(); }
+  });
+}
+
+})(); // end IIFE
 </script>
 </body>
 </html>
